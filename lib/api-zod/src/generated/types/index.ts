@@ -38,6 +38,8 @@ export * from './serviceInput';
 export * from './serviceListResponse';
 export * from './serviceUpdate';
 export * from './successResponse';
+export * from './uploadUrlRequest';
+export * from './uploadUrlResponse';
 export * from './user';
 export * from './userUpdate';
 export * from './webhookResponse';

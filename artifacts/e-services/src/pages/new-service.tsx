@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useCreateService, useListCategories, getGetMyServicesQueryKey } from "@workspace/api-client-react";
+import { useUpload } from "@workspace/object-storage-web";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -9,13 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle, Upload, X, ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function NewService() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const qc = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: categories } = useListCategories();
   const createService = useCreateService();
@@ -26,14 +28,56 @@ export default function NewService() {
     price: "",
     deliveryDays: "",
     categoryId: "",
-    imageUrl: "",
     tags: "",
   });
+
+  const [uploadedImagePath, setUploadedImagePath] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const { uploadFile, isUploading, progress } = useUpload({
+    onSuccess: (response: { objectPath: string }) => {
+      setUploadedImagePath(response.objectPath);
+      toast({ title: "Image uploadée avec succès" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erreur d'upload", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Format invalide", description: "Veuillez sélectionner une image.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Fichier trop volumineux", description: "La taille maximale est 5 Mo.", variant: "destructive" });
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    setUploadedImagePath(null);
+
+    await uploadFile(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    setUploadedImagePath(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.categoryId) {
       toast({ title: "Catégorie requise", variant: "destructive" });
+      return;
+    }
+    if (imagePreview && !uploadedImagePath) {
+      toast({ title: "Upload en cours", description: "Veuillez attendre la fin de l'upload.", variant: "destructive" });
       return;
     }
     createService.mutate(
@@ -44,7 +88,7 @@ export default function NewService() {
           price: Number(form.price),
           deliveryDays: Number(form.deliveryDays),
           categoryId: Number(form.categoryId),
-          imageUrl: form.imageUrl || undefined,
+          imageUrl: uploadedImagePath ? `/api/storage${uploadedImagePath}` : undefined,
           tags: form.tags || undefined,
         },
       },
@@ -155,22 +199,74 @@ export default function NewService() {
               </div>
 
               <div className="space-y-4 border border-border rounded-xl p-6 bg-card">
-                <h2 className="font-semibold">Médias & Tags</h2>
+                <h2 className="font-semibold">Image & Tags</h2>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="imageUrl">URL de l'image</Label>
-                  <Input
-                    id="imageUrl"
-                    value={form.imageUrl}
-                    onChange={(e) => set("imageUrl", e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    type="url"
-                  />
-                  {form.imageUrl && (
-                    <div className="mt-2 aspect-video max-w-xs rounded-lg overflow-hidden bg-muted">
-                      <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <div className="space-y-2">
+                  <Label>Image du service</Label>
+
+                  {imagePreview ? (
+                    <div className="relative">
+                      <div className="aspect-video rounded-xl overflow-hidden bg-muted border border-border">
+                        <img
+                          src={imagePreview}
+                          alt="Aperçu"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {isUploading && (
+                        <div className="absolute inset-0 bg-black/50 rounded-xl flex flex-col items-center justify-center gap-2">
+                          <Loader2 className="w-6 h-6 text-white animate-spin" />
+                          <div className="w-40 bg-white/30 rounded-full h-1.5">
+                            <div
+                              className="bg-white h-1.5 rounded-full transition-all duration-300"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          <p className="text-white text-xs font-medium">{progress}%</p>
+                        </div>
+                      )}
+                      {!isUploading && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-full text-white transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                      {uploadedImagePath && (
+                        <div className="absolute bottom-2 left-2 bg-primary/90 text-primary-foreground text-xs px-2 py-1 rounded-full font-medium">
+                          ✓ Uploadée
+                        </div>
+                      )}
                     </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full aspect-video rounded-xl border-2 border-dashed border-border hover:border-primary/60 bg-muted/40 hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group"
+                    >
+                      <div className="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors">
+                        <ImageIcon className="w-6 h-6 text-primary" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-foreground">Cliquer pour uploader une image</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">PNG, JPG, WEBP — max 5 Mo</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-primary font-medium">
+                        <Upload className="w-3.5 h-3.5" />
+                        Parcourir les fichiers
+                      </div>
+                    </button>
                   )}
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
                 </div>
 
                 <div className="space-y-1.5">
@@ -197,7 +293,7 @@ export default function NewService() {
                 <Button
                   type="submit"
                   className="flex-1 bg-primary text-primary-foreground gap-2"
-                  disabled={createService.isPending}
+                  disabled={createService.isPending || isUploading}
                 >
                   {createService.isPending
                     ? <><Loader2 className="w-4 h-4 animate-spin" />Publication...</>
