@@ -83,7 +83,7 @@ Deploy as one service — Express serves the built React frontend + all API rout
 
 **Build command:**
 ```
-npm install -g pnpm && pnpm install --frozen-lockfile && pnpm run typecheck:libs && BASE_PATH=/ PORT=3000 NODE_ENV=production pnpm --filter @workspace/e-services run build && pnpm --filter @workspace/api-server run build
+corepack enable && pnpm run render-build
 ```
 
 **Start command:**
@@ -95,16 +95,21 @@ NODE_ENV=production node artifacts/api-server/dist/index.mjs
 | Variable | Description |
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string (Render Postgres or external) |
-| `JWT_SECRET` | Random secret for JWT signing (generate with `openssl rand -hex 32`) |
-| `PORT` | Provided automatically by Render — do not set manually |
-| `DEFAULT_OBJECT_STORAGE_BUCKET_ID` | From Replit object storage (copy from Replit secrets) |
-| `PRIVATE_OBJECT_DIR` | From Replit object storage |
-| `PUBLIC_OBJECT_SEARCH_PATHS` | From Replit object storage |
+| `JWT_SECRET` | Random secret pour JWT (générer : `openssl rand -hex 32`) |
+| `PORT` | Fourni automatiquement par Render — ne pas définir manuellement |
+| `DEFAULT_OBJECT_STORAGE_BUCKET_ID` | Depuis les secrets Replit |
+| `PRIVATE_OBJECT_DIR` | Depuis les secrets Replit |
+| `PUBLIC_OBJECT_SEARCH_PATHS` | Depuis les secrets Replit |
 
-**Notes:**
-- `NODE_ENV=production` tells Express to serve the built frontend from `artifacts/e-services/dist/public`
-- The SPA fallback serves `index.html` for all non-API routes
-- After DB provisioning, run migrations: `pnpm --filter @workspace/db run push`
+**Pourquoi ces commandes :**
+- `corepack enable` active la gestion du gestionnaire de paquets déclaré dans `package.json` (`pnpm@10.26.1`) — pas besoin de droits globaux npm
+- `pnpm run render-build` exécute : install → build TypeScript libs → build frontend (Vite) → build serveur (esbuild)
+- En production, Express sert le frontend compilé (`artifacts/e-services/dist/public`) avec SPA fallback
+
+**Après création de la base de données sur Render :**
+```
+pnpm --filter @workspace/db run push
+```
 
 ## Pointers
 
