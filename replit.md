@@ -94,12 +94,11 @@ NODE_ENV=production node artifacts/api-server/dist/index.mjs
 **Required environment variables on Render:**
 | Variable | Description |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection string (Render Postgres or external) |
-| `JWT_SECRET` | Random secret pour JWT (générer : `openssl rand -hex 32`) |
+| `DATABASE_URL` | **Obligatoire** — chaîne de connexion PostgreSQL. Créer un service "Render Postgres" et le lier. |
+| `JWT_SECRET` | **Obligatoire** — secret aléatoire pour JWT (générer : `openssl rand -hex 32`) |
 | `PORT` | Fourni automatiquement par Render — ne pas définir manuellement |
-| `DEFAULT_OBJECT_STORAGE_BUCKET_ID` | Depuis les secrets Replit |
-| `PRIVATE_OBJECT_DIR` | Depuis les secrets Replit |
-| `PUBLIC_OBJECT_SEARCH_PATHS` | Depuis les secrets Replit |
+
+> **Note stockage fichiers :** L'upload d'images de services utilise le stockage objet Replit (sidecar GCS) qui n'est pas disponible sur Render. Les routes `/api/storage/*` retourneront 500 sur Render — le reste de l'app fonctionne normalement.
 
 **Pourquoi ces commandes :**
 - `corepack enable` active la gestion du gestionnaire de paquets déclaré dans `package.json` (`pnpm@10.26.1`) — pas besoin de droits globaux npm
