@@ -188,7 +188,18 @@ export default function FreelancerDashboard() {
                       <div key={svc.id} className="border border-border rounded-xl p-3 bg-card">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium text-sm truncate">{svc.title}</div>
+                            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                              <div className="font-medium text-sm truncate">{svc.title}</div>
+                              {svc.status === "active" ? (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold flex-shrink-0">● En ligne</span>
+                              ) : svc.status === "pending" ? (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 font-semibold flex-shrink-0">⏳ En attente</span>
+                              ) : svc.status === "paused" ? (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 font-semibold flex-shrink-0">⏸ Pausé</span>
+                              ) : (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold flex-shrink-0">✕ Rejeté</span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                               <span className="font-semibold text-primary">{svc.price.toLocaleString("fr-SN")} FCFA</span>
                               <span>·</span>
@@ -202,7 +213,7 @@ export default function FreelancerDashboard() {
                             <button
                               onClick={() => navigate(`/services/${svc.id}`)}
                               className="p-1.5 hover:bg-muted rounded-md transition-colors"
-                              title="Voir"
+                              title="Voir la page"
                             >
                               <Edit className="w-3.5 h-3.5 text-muted-foreground" />
                             </button>

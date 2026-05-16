@@ -1,9 +1,10 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { useListOrders, useGetOrderStats, useListNotifications } from "@workspace/api-client-react";
+import { useListOrders, useGetOrderStats, useListNotifications, useListServices } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ServiceCard from "@/components/ServiceCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,9 +25,11 @@ export default function Dashboard() {
   const { data: orders, isLoading: ordersLoading } = useListOrders();
   const { data: stats } = useGetOrderStats();
   const { data: notifications } = useListNotifications();
+  const { data: servicesData, isLoading: servicesLoading } = useListServices({ sort: "popular", limit: 4 });
 
   const activeOrders = orders?.filter(o => !["completed", "cancelled"].includes(o.status)) ?? [];
   const unreadNotifs = notifications?.filter(n => !n.isRead) ?? [];
+  const recommendedServices = servicesData?.services ?? [];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -77,7 +80,7 @@ export default function Dashboard() {
               ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
               <div className="lg:col-span-2">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="font-semibold">Commandes actives</h2>
@@ -151,6 +154,32 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-lg">Services recommandés</h2>
+                <Link href="/services">
+                  <Button variant="ghost" size="sm" className="gap-1 text-xs">
+                    Voir tout <ArrowRight className="w-3 h-3" />
+                  </Button>
+                </Link>
+              </div>
+              {servicesLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-64 rounded-xl" />)}
+                </div>
+              ) : recommendedServices.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {recommendedServices.map(svc => (
+                    <ServiceCard key={svc.id} service={svc} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10 border border-dashed border-border rounded-xl">
+                  <p className="text-sm text-muted-foreground">Aucun service disponible</p>
+                </div>
+              )}
             </div>
           </motion.div>
         </div>

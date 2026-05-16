@@ -77,6 +77,35 @@ All passwords are "password":
 - `useGetFreelancerProfile` requires `queryKey` in options when passing `enabled`
 - Test password hash is `$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi` (= "password")
 
+## Render Deployment (single Web Service)
+
+Deploy as one service — Express serves the built React frontend + all API routes.
+
+**Build command:**
+```
+npm install -g pnpm && pnpm install --frozen-lockfile && pnpm run typecheck:libs && BASE_PATH=/ PORT=3000 NODE_ENV=production pnpm --filter @workspace/e-services run build && pnpm --filter @workspace/api-server run build
+```
+
+**Start command:**
+```
+NODE_ENV=production node artifacts/api-server/dist/index.mjs
+```
+
+**Required environment variables on Render:**
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string (Render Postgres or external) |
+| `JWT_SECRET` | Random secret for JWT signing (generate with `openssl rand -hex 32`) |
+| `PORT` | Provided automatically by Render — do not set manually |
+| `DEFAULT_OBJECT_STORAGE_BUCKET_ID` | From Replit object storage (copy from Replit secrets) |
+| `PRIVATE_OBJECT_DIR` | From Replit object storage |
+| `PUBLIC_OBJECT_SEARCH_PATHS` | From Replit object storage |
+
+**Notes:**
+- `NODE_ENV=production` tells Express to serve the built frontend from `artifacts/e-services/dist/public`
+- The SPA fallback serves `index.html` for all non-API routes
+- After DB provisioning, run migrations: `pnpm --filter @workspace/db run push`
+
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
